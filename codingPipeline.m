@@ -32,7 +32,7 @@ opts.lite = false;
 opts = vl_argparse(opts, varargin) ;
 
 % --------------------------------------------------------------------
-%                        Features Extracting (for codebooks formation)
+%                        Features Extraction (for codebooks formation)
 % --------------------------------------------------------------------
 
 %% Initialization %%
@@ -54,7 +54,7 @@ if isempty(opts.numSamplesPerWord)
     switch opts.type
 		case {'bovw'}
 			opts.numSamplesPerWord = 200 ;
-		case {'vlad','fv'}
+		case {'vlad', 'vlad_aug', 'fv'}
 			opts.numSamplesPerWord = 1000 ;
 		otherwise
 			assert(false) ;
@@ -196,7 +196,7 @@ else
     descrs = transform * opts.projection * bsxfun(@minus, descrs, opts.projectionCenter) ;
 end
 
-%% class of descrs and transform must be single 
+%% class of descriptors and transform must be single 
 %% convert it if necessary
 if strcmp(class(descrs), 'single') == 0
 	error('descriptors type must be single.');
@@ -231,13 +231,14 @@ if ~exist(fullfile(resultPath, 'encoder.mat'), 'file')
 	end
 	save(fullfile(resultPath, 'encoder.mat'), 'encoder') ;
 else 
-	load(fullfile(resultPath, 'encoder.mat'));
+	disp('***** loading encoder *****') ;
+	load(fullfile(resultPath, 'encoder.mat')) ;
 end
 
 disp('***** training complete *****');
 toc;
 % --------------------------------------------------------------------
-%                                 Features Extracting (for all images)
+%                                 Features Extraction (for all images)
 % --------------------------------------------------------------------
 
 %% Initialization %%
@@ -249,11 +250,13 @@ numImages = numel(imageList) ;
 tic;
 %% encoded codes
 codes = {} ;
+%% progress reminder
+parfor_progress(numImages, resultPath) ;
 
 parfor indexAll = 1:numImages
 % for indexAll = 1:numImages
 	%% reading images
-	fprintf('%s: reading: %s\n', mfilename, imageList{indexAll}) ;
+	% fprintf('%s: reading: %s\n', mfilename, imageList{indexAll}) ;
 	im = opts.readImageFn(imageList{indexAll}) ;
 	imageSize = size(im) ;
 	w = size(im,2) ;
@@ -281,7 +284,12 @@ parfor indexAll = 1:numImages
 	
 	%% connect codes 
 	codes{indexAll} = cat(1, code{:});
+	%% show progress
+	parfor_progress(-1, resultPath);
 end
+
+%% close progress reminder
+parfor_progress(0, resultPath);
 
 codes = cat(2, codes{:});
 %% store intermediate results

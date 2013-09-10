@@ -248,7 +248,7 @@ for c = 1:numel(classRange)			% iterate through all classes
 	scores{c} = w{c}' * descrs + b{c} ;
 
 %% computing precision-recall curve
-%% note the new standard of average precision calculation method: ap11
+%% note the old standard of average precision calculation method: ap11
 	[~,~,info] = vl_pr(y(test), scores{c}(test)) ;
 	ap(c) = info.ap ;
 	ap11(c) = info.ap_interp_11 ;
@@ -291,27 +291,27 @@ meanAccuracy = sprintf('mean accuracy: %f\n', mean(diag(confusion)));
 mAP = sprintf('mAP: %.2f %%; mAP 11: %.2f', mean(ap) * 100, mean(ap11) * 100) ;
 
 %% visualize results
-if strcmp(opts.dataset, 'voc07') == 0
+% if strcmp(opts.dataset, 'voc07') == 0
 %% confusion matrix
-	figure(1) ; clf ;
-	imagesc(confusion) ; 
-	axis square ;
-	title([opts.prefix ' - ' meanAccuracy]) ;
-	vl_printsize(1) ;
-	print('-dpdf', fullfile(opts.resultDir, 'result-confusion.pdf')) ;
-	print('-djpeg', fullfile(opts.resultDir, 'result-confusion.jpg')) ;
-end
+	% figure(1) ; clf ;
+	% imagesc(confusion) ; 
+	% axis square ;
+	% title([opts.prefix ' - ' meanAccuracy]) ;
+	% vl_printsize(1) ;
+	% print('-dpdf', fullfile(opts.resultDir, 'result-confusion.pdf')) ;
+	% print('-djpeg', fullfile(opts.resultDir, 'result-confusion.jpg')) ;
+% end
 
 %% average accuracy for each class and the mAP
-figure(2) ; clf ; bar(ap * 100) ;
-title([opts.prefix ' - ' mAP]) ;
-ylabel('AP %%') ; 
-xlabel('class') ;
-grid on ;
-vl_printsize(1) ;
-ylim([0 100]) ;
+% figure(2) ; clf ; bar(ap * 100) ;
+% title([opts.prefix ' - ' mAP]) ;
+% ylabel('AP %%') ; 
+% xlabel('class') ;
+% grid on ;
+% vl_printsize(1) ;
+% ylim([0 100]) ;
 % print('-dpdf', fullfile(opts.resultDir,'result-ap.pdf')) ;
-print('-djpeg', fullfile(opts.resultDir, 'result-ap.jpg')) ;
+% print('-djpeg', fullfile(opts.resultDir, 'result-ap.jpg')) ;
 
 disp(meanAccuracy) ;
 disp(mAP) ;

@@ -120,7 +120,7 @@ numDescriptors = size(descrs,2) ;
 %% that is, it controls all states of VLFeat functions
 disp('***** learning codebook *****');
 switch encoder.type
-	case {'bovw', 'vlad'}
+	case {'bovw', 'vlad', 'vlad_aug'}
 		vl_twister('state', opts.seed) ;
 		encoder.words = vl_kmeans(descrs, opts.numWords, 'verbose', 'algorithm', 'elkan') ;
 		encoder.kdtree = vl_kdtreebuild(encoder.words, 'numTrees', 2) ;
