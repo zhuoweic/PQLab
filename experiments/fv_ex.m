@@ -1,4 +1,4 @@
-function vlad_aug_ex()
+function fv_ex()
 % EXPERIMENTS   Run image classification experiments
 %    The experiments download a number of benchmark datasets in the
 %    'data/' subfolder. Make sure that there are several GBs of
@@ -14,7 +14,6 @@ function vlad_aug_ex()
 %	 The procedure is set as a function in case to affect the main environment.
 
 % Author: Andrea Vedaldi
-% Maintained by Zhuowei Cai (heavily modifications)
 
 % Copyright (C) 2013 Andrea Vedaldi
 % All rights reserved.
@@ -26,36 +25,37 @@ lite = true ;
 clear ex ;
 
 % initialization %%
-% datasetDir = 'd:\workworkwork\vlfeat-0.9.17\apps\recognition\';
-% experimentDir = 'd:\workworkwork\';
-datasetDir = '/nfs/home/zhuowei/datasets' ;
-experimentDir = '/nfs/home/zhuowei/experiments' ;
+datasetDir = 'd:\workworkwork\vlfeat-0.9.17\apps\recognition\';
+experimentDir = 'd:\workworkwork\';
+% datasetDir = '/nfs/home/zhuowei/datasets' ;
+% experimentDir = '/nfs/home/zhuowei/experiments' ;
 
-%%%%%%%%%%%%%%%
-% vlad coding %
-%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+% fisher vector coding %
+%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% voc2007
-ex.prefix = 'vlad_aug' ;										% experiment type
+ex.prefix = 'fv' ;												% experiment type
 ex.datasets = {'voc07'} ;										% images dataset
 ex.seed = 1 ;													% random seed for reproducing work
+ex.partitionOpts = {'partition', 'none'} ;						% partition settings
 ex.kernelOpts = {'kernel', 'linear'} ;							% kernel options
 ex.svmOpts = {'C', 1} ;											% svm options
 ex.productOpts = {'products', 1} ;								% number of subspaces
-ex.encoderOpts = {...
-  'type', 'vlad_aug', ...
+ex.encoderOpts = {...											% encoder options
+  'type', 'fv', ...
   'numWords', 256, ...
-  'layouts', {'1x1'} ... 
+  'layouts', {'1x1'}, ...
   'geometricExtension', 'none'};
-ex.transformOpts = {...
-  'numPcaDimensions', 100, ...
-  'transform', 'none', ...
-  'whitening', true, ...
-  'whiteningRegul', 0.01};
-  
+ex.transformOpts = {...											% projection transform options
+  'numPcaDimensions', 80, ...
+  'transform', 'none'};
+
 ex.extractorFn = @(x) getDenseSIFT(x, ...						% dense sift settings different 
                                    'step', 4, ...				% for caltech101 and others
                                    'scales', 2.^(1:-.5:-3));	% all but caltech101 doubled the resolution
+%***** augment data? flip the images? multi-scale sift? *****%
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 % classification start %
@@ -76,6 +76,7 @@ end
 traintest(...
 	ex.kernelOpts{:}, ...
 	ex.svmOpts{:}, ...
+	ex.partitionOpts{:}, ...
 	ex.productOpts{:}, ...	
 	'prefix', [dataset '-' ex.prefix '-' tag], ...
 	'seed', ex.seed, ...

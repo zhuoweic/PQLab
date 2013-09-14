@@ -1,4 +1,4 @@
-function fv_ex()
+function vlad_ex()
 % EXPERIMENTS   Run image classification experiments
 %    The experiments download a number of benchmark datasets in the
 %    'data/' subfolder. Make sure that there are several GBs of
@@ -14,6 +14,7 @@ function fv_ex()
 %	 The procedure is set as a function in case to affect the main environment.
 
 % Author: Andrea Vedaldi
+% Maintained by Zhuowei Cai (heavily modifications)
 
 % Copyright (C) 2013 Andrea Vedaldi
 % All rights reserved.
@@ -30,30 +31,32 @@ experimentDir = 'd:\workworkwork\';
 % datasetDir = '/nfs/home/zhuowei/datasets' ;
 % experimentDir = '/nfs/home/zhuowei/experiments' ;
 
-%%%%%%%%%%%%%%%%%%%%%%%%
-% fisher vector coding %
-%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%
+% vlad coding %
+%%%%%%%%%%%%%%%
 
 %% voc2007
-ex.prefix = 'fv' ;												% experiment type
+ex.prefix = 'vlad' ;        									% experiment type
 ex.datasets = {'voc07'} ;										% images dataset
-ex.seed = 1 ;													% random seed for reproducing work
+ex.seed = 1 ;													% randomness controller
+ex.partitionOpts = {'partition', 'none'} ;									% random seed for reproducing work
 ex.kernelOpts = {'kernel', 'linear'} ;							% kernel options
 ex.svmOpts = {'C', 1} ;											% svm options
-ex.productOpts = {'products', 1} ;								% number of subspaces
-ex.encoderOpts = {...											% encoder options
-  'type', 'fv', ...
+ex.productOpts = {'products', 4} ;								% number of subspaces
+ex.encoderOpts = {...
+  'type', 'vlad', ...
   'numWords', 256, ...
-  'layouts', {'1x1'}, ...
+  'layouts', {'1x1'} ... 
   'geometricExtension', 'none'};
-ex.transformOpts = {...											% projection transform options
-  'numPcaDimensions', 80, ...
-  'transform', 'randomRotate'};
+ex.transformOpts = {...
+  'numPcaDimensions', +inf, ...
+  'transform', 'none', ...
+  'whitening', false, ...
+  'whiteningRegul', 0.01};
+  
 ex.extractorFn = @(x) getDenseSIFT(x, ...						% dense sift settings different 
                                    'step', 4, ...				% for caltech101 and others
                                    'scales', 2.^(1:-.5:-3));	% all but caltech101 doubled the resolution
-%***** augment data? flip the images? multi-scale sift? *****%
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 % classification start %
@@ -74,6 +77,7 @@ end
 traintest(...
 	ex.kernelOpts{:}, ...
 	ex.svmOpts{:}, ...
+	ex.partitionOpts{:}, ...
 	ex.productOpts{:}, ...	
 	'prefix', [dataset '-' ex.prefix '-' tag], ...
 	'seed', ex.seed, ...

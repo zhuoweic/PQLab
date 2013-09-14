@@ -10,8 +10,9 @@ function codes = codingPipeline(imdb, featuresPath, resultPath, varargin)
 opts.readImageFn = @readImage;
 
 %% novel parameters for product quantization
-opts.products = 1;
-opts.transform = 'none';
+opts.products = 1 ;
+opts.partition = 'none' ;
+opts.transform = 'none' ;
 
 %% codebooks formation parameters
 opts.encoderParams = {'type', 'bovw'} ;
@@ -111,7 +112,7 @@ end
 opts.projection = 1 ;
 opts.projectionCenter = zeros(size(descrs, 1), 1) ;
 
-if ~exist(fullfile(resultPath, 'transform.mat'), 'file')  
+% if ~exist(fullfile(resultPath, 'transform.mat'), 'file')  
   
 	if strcmp(opts.transform, 'ica') == 0
 		%%%%%%%%%%%%%%%%%%%%%%%%
@@ -165,7 +166,7 @@ if ~exist(fullfile(resultPath, 'transform.mat'), 'file')
 			
 		projection = opts.projection ;
 		projectionCenter = opts.projectionCenter;
-		save(fullfile(resultPath, 'transform.mat'), 'projection', 'projectionCenter', 'transform');
+		% save(fullfile(resultPath, 'transform.mat'), 'projection', 'projectionCenter', 'transform');
 		
 	else
 		%%%%%%%%%%%%%%%%%%%%%%%%
@@ -184,17 +185,17 @@ if ~exist(fullfile(resultPath, 'transform.mat'), 'file')
 		
 		projection = opts.projection ;
 		projectionCenter = opts.projectionCenter;
-		save(fullfile(resultPath, 'transform.mat'), 'transform', 'projectionCenter', 'projection');
+		% save(fullfile(resultPath, 'transform.mat'), 'transform', 'projectionCenter', 'projection');
 	end
 	
-else
-	%% if exist transform, do nothing
-	disp('***** loading transform matrix *****');
-	load(fullfile(resultPath, 'transform.mat'));
-	opts.projection = projection;
-	opts.projectionCenter = projectionCenter;
-    descrs = transform * opts.projection * bsxfun(@minus, descrs, opts.projectionCenter) ;
-end
+% else
+	% if exist transform, do nothing
+	% disp('***** loading transform matrix *****');
+	% load(fullfile(resultPath, 'transform.mat'));
+	% opts.projection = projection;
+	% opts.projectionCenter = projectionCenter;
+    % descrs = transform * opts.projection * bsxfun(@minus, descrs, opts.projectionCenter) ;
+% end
 
 %% class of descriptors and transform must be single 
 %% convert it if necessary
@@ -209,12 +210,51 @@ end
 %% each component represents a partitioned part
 %% the resulting partition is an index cell
 %% can incorporate different coding method in different subspaces
-partition = {};
-for subspace = 1 : opts.products
-    subdim = size(descrs, 1) / opts.products;
-    partition{subspace} = [1 : subdim] + (subspace - 1) * subdim ;
+
+if strcmp(opts.partition, 'none') == 1
+	disp('***** orderly partition feature space *****');
+	partition = {};
+	for subspace = 1 : opts.products
+		subdim = size(descrs, 1) / opts.products;
+		partition{subspace} = [1 : subdim] + (subspace - 1) * subdim ;
+	end
+	numSubspaces = size(partition, 2);
+else if strcmp(opts.partition, 'spectralClustering') == 1
+	disp('***** applying spectral clustering to partition feature space *****');
+	% specified subspaces number by products
+	numSubspaces = opts.products ;
+	% apply spectral clustering on feature dimension
+	% similarity matrix based on mutual information
+	if ~exist(fullfile(featuresPath, sprintf('mutualinformationMatrix#%d.mat', numDescrsPerImage)), 'file')
+		mutualinformationMatrix = miMatrix(descrs) ;
+		disp('***** computing mutualinformationMatrix *****');
+		save(fullfile(featuresPath, sprintf('mutualinformationMatrix#%d.mat', numDescrsPerImage), 'mutualinformationMatrix'));
+	else
+		disp('***** loading mutualinformationMatrix *****');
+		load(fullfile(featuresPath, sprintf('mutualinformationMatrix#%d.mat', numDescrsPerImage))) ;
+	end
+	%% index recording cluster label which each dimension belongs to
+	%% labels are of the format from 1 to numSubspaces
+	indexCluster = spectral_clustering(mutualinformationMatrix, numSubspaces) ;
+	% [classCluster, indexPermute] = sort(indexCluster) ;
+	%% get the partition
+	partition = {} ;
+	for subspace = 1 : numSubspaces
+		% subspace is equal to the label of the very class at the same time
+		partition{subspace} = find(indexCluster == subspace) ;
+	end
+    else if strcmp(opts.partition, 'productsPyramid') == 1
+        disp('***** randomly append products *****') ;
+        %% appending 1x100 + 2x50 + 4x25 subspaces
+        %% assuming PCA to 100 !!
+        partitionMethod = [1] ;
+        numSubspaces = numel(partitionMethod) ;
+        for subspace = 1 : numSubspaces
+            partition{subspace} = vl_colsubset(1:size(descrs, 1), size(descrs, 1) / partitionMethod(subspace)) ;
+        end
+        end
+    end
 end
-numSubspaces = size(partition, 2);
 
 % --------------------------------------------------------------------
 %                                          Encoders/Codebooks Training
@@ -222,18 +262,18 @@ numSubspaces = size(partition, 2);
 
 %% recording training time
 tic;
-if ~exist(fullfile(resultPath, 'encoder.mat'), 'file')  
+% if ~exist(fullfile(resultPath, 'encoder.mat'), 'file')  
 	encoder = {};
 	parfor subspace = 1 : numSubspaces
 		encoder{subspace} = trainEncoder(descrs(partition{subspace}, :), frames, ...
 							 opts.encoderParams{:}, ...
 							 'lite', opts.lite) ;
 	end
-	save(fullfile(resultPath, 'encoder.mat'), 'encoder') ;
-else 
-	disp('***** loading encoder *****') ;
-	load(fullfile(resultPath, 'encoder.mat')) ;
-end
+	% save(fullfile(resultPath, 'encoder.mat'), 'encoder') ;
+% else 
+	% disp('***** loading encoder *****') ;
+	% load(fullfile(resultPath, 'encoder.mat')) ;
+% end
 
 disp('***** training complete *****');
 toc;

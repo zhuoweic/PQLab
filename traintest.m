@@ -69,6 +69,8 @@ opts.transformParams = {...
 
 %% novel settings for product quantization
 opts.products = 1;
+%% partition settings
+opts.partition = 'none' ;
 
 %% configuring intermediate data path
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -171,6 +173,7 @@ if ~exist(fullfile(opts.resultDir, 'codes.mat'), 'file')
 							opts.encoderParams{:}, ...
 							'lite', opts.lite, ...
 							'products', opts.products, ...
+							'partition', opts.partition, ...
 							'encoderParams',opts.encoderParams);
 else
 	disp('***** loading codes *****');
@@ -281,10 +284,9 @@ end
 
 %% save results
 %% classifiers
-save(opts.modelPath, 'w', 'b') ;
+% save(opts.modelPath, 'w', 'b') ;
 %% average precision
-save(fullfile(opts.resultDir,'result.mat'), ...
-    'scores', 'ap', 'ap11', 'confusion', 'classRange', 'opts') ;
+% save(fullfile(opts.resultDir,'result.mat'), 'scores', 'ap', 'ap11', 'confusion', 'classRange', 'opts') ;
 
 %% mAP
 meanAccuracy = sprintf('mean accuracy: %f\n', mean(diag(confusion)));
