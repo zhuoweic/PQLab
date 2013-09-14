@@ -71,50 +71,27 @@ for i = 1:size(encoder.subdivisions,2)
 			[words, distances] = vl_kdtreequery(encoder.kdtree, encoder.words, ...
 											descrs, ...
 											'MaxComparisons', 15) ;
-			%% obtain real centers
-			centers = zeros(size(descrs, 1), encoder.numWords);
-			for sample = 1 : numel(words)
-				centers(:, words(sample)) = centers(:, words(sample)) + descrs(:, sample) ;
-			end
-			%% obtain centers
-			for component = 1 : encoder.numWords
-				centers(:, component) = centers(:, component) / max(sum(words == component), 1) ;
-			end
-			
-			%% obtain center-mean deviation
-			z = zeros(size(descrs, 1), encoder.numWords);		
-			for sample = 1 : numel(words)
-				z(:, words(sample)) = z(:, words(sample)) + descrs(:, sample) - encoder.words(:, words(sample)) ;
 
-			end
-			%% power normalization (alpha = 2)
-			z = sign(z) .* sqrt(abs(z));
-			%%  L2 component-wise normalization
-			for component = 1 : encoder.numWords
-				z(:, component) = z(:, component) / max(norm(z(:, component)), 1e-12);
-			end
-			
-			%% obtain centers deviation in various norms
-			aug_z = zeros(size(descrs, 1), encoder.numWords);		
-			for sample = 1 : numel(words)
-				aug_z(:, words(sample)) = aug_z(:, words(sample)) + ...
-									abs(descrs(:, sample) - centers(:, words(sample))) - ...
-									abs(descrs(:, sample) - encoder.words(:, words(sample))) ;
-			end
-			%% power normalization (alpha = 2)
-			aug_z = sign(aug_z) .* sqrt(abs(aug_z));
-			%%  component-wise normalization
-			for component = 1 : encoder.numWords
-				aug_z(:, component) = aug_z(:, component) / max(norm(aug_z(:, component)), 1e-12);
-			end
-			z = cat(2, z, aug_z) ;
-
-			%% double type descriptors cannot further improve performance
+			assign = zeros(encoder.numWords, numel(words), 'single') ;
+			assign(sub2ind(size(assign), double(words), 1:numel(words))) = 1 ;
+			%% get deviation from codewords
+			deviation = descrs - encoder.words * assign ;
+			%% apply preprocessing and aggregate it on different codewords
+			z = deviation * assign' ;
+			%% alpha power normalization
+			z = sign(z) .* sqrt(abs(z)) ;
+			%% component-wise normalization
+			z = bsxfun(@rdivide, z, max(sqrt(sum(z.^2)), 1e-12)) ;
+			%% connect different components into a vector representation
+			%% TAKE CARE ABOUT VECTOR CONNECTION %%
+			%% ERROR PROMPTED %%
+			z = z(:) ;
+			%% decrease codes size
 			z = single(z);
 	end
 	%% overall normalization on the pooled code
-	z = z / max(sqrt(sum(z.^2)), 1e-12) ;
-	code{i} = z(:) ;
+	z = z / max(sqrt(sum(z.^2)), 1e-12) ; %% error prompt !! thinking for better solution
+	code{i} = z ;
 end
 
 code = cat(1, code{:}) ;
